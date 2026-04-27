@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UV Competition Database Matcher</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        /* ══ HEADER ══ */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-logo {
+            flex-shrink: 0;
+            background: white;
+            border-radius: 4px;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 48px;
+        }
+        .header-logo img { height: 40px; width: auto; }
+        .header-text { flex: 1; text-align: center; }
+        .header-text h1 { font-size: 1.7em; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .header-text p  { font-size: 0.88em; opacity: 0.85; }
+        .header-spacer  { flex-shrink: 0; width: 120px; }
+
+        /* ══ HELP BAR ══ */
+        .help-bar { background: #fff8e1; border-bottom: 2px solid #ffc107; padding: 0; }
+        .help-toggle {
+            width: 100%; background: none; border: none; padding: 7px 16px;
+            text-align: left; cursor: pointer; font-size: 0.85em; font-weight: 700;
+            color: #856404; display: flex; align-items: center; gap: 8px;
+        }
+        .help-toggle:hover { background: #fff3cd; }
+        .help-content { display: none; padding: 14px 20px 16px; background: #fffdf0; }
+        .help-content.open { display: block; }
+        .help-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .help-section h3 { color: #0f3460; font-size: 0.9em; margin-bottom: 8px; border-bottom: 2px solid #667eea; padding-bottom: 4px; }
+        .help-section ol, .help-section ul { padding-left: 16px; font-size: 0.82em; line-height: 1.7; color: #333; }
+        .help-section code { background: #e8f0fe; padding: 2px 5px; border-radius: 3px; font-size: 0.8em; color: #1a73e8; word-break: break-all; }
+        .help-note { background: #fce8e6; border-left: 4px solid #d93025; padding: 7px 10px; border-radius: 4px; font-size: 0.8em; color: #c5221f; margin-top: 8px; }
+        .help-tip  { background: #e6f4ea; border-left: 4px solid #34a853; padding: 7px 10px; border-radius: 4px; font-size: 0.8em; color: #137333; margin-top: 8px; }
+
+        /* ══ CONTROLS BAR ══ */
+        .controls-bar {
+            background: #f0f2f8;
+            border-bottom: 2px solid #dde2f0;
+            padding: 8px 14px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Data source row */
+        .source-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            width: 100%;
+            border-bottom: 1px solid #dde2f0;
+            padding-bottom: 7px;
+            margin-bottom: 4px;
+        }
+        .source-label {
+            font-size: 0.78em;
+            font-weight: 700;
+            color: #1a73e8;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .source-url-input {
+            flex: 1;
+            min-width: 220px;
+            max-width: 420px;
+            padding: 5px 8px;
+            border: 1.5px solid #b0bfea;
+            border-radius: 5px;
+            font-size: 0.8em;
+            background: white;
+        }
+        .source-url-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.15); }
+        .source-divider { font-size: 0.75em; color: #aaa; font-weight: 700; padding: 0 4px; }
+        .file-label {
+            font-size: 0.78em;
+            font-weight: 700;
+            color: #856404;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .file-input { font-size: 0.76em; }
+
+        /* Parameters row */
+        .params-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .param-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .param-label {
+            font-size: 0.76em;
+            font-weight: 700;
+            color: #444;
+            white-space: nowrap;
+        }
+
+        /* ── 50% larger font for all manually entered fields ── */
+        .param-input {
+            padding: 5px 7px;
+            border: 1.5px solid #ddd;
+            border-radius: 5px;
+            font-size: 1.2em;          /* was 0.8em → +50% */
+            background: white;
+            width: 92px;               /* slightly wider to fit larger text */
+            transition: border-color 0.2s;
+        }
+        .param-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.15); }
+        .param-input.narrow { width: 70px; }
+        .param-input.wide   { width: 104px; }
+
+        .param-select {
+            padding: 5px 6px;
+            border: 1.5px solid #ddd;
+            border-radius: 5px;
+            font-size: 1.17em;         /* was 0.78em → +50% */
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .param-select:focus { outline: none; border-color: #667eea; }
+
+        /* Unit toggle — 50% larger */
+        .unit-toggle {
+            background: white;
+            border: 1.5px solid #ddd;
+            padding: 5px 9px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.11em;         /* was 0.74em → +50% */
+            font-weight: 700;
+            color: #667eea;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .unit-toggle:hover, .unit-toggle.active {
+            background: #667eea; color: white; border-color: #667eea;
+        }
+
+        /* Separator */
+        .bar-sep {
+            width: 1px;
+            height: 34px;
+            background: #ccd0e0;
+            margin: 0 2px;
+            flex-shrink: 0;
+        }
+
+        /* ══ TOLERANCE SPINNERS — arrows INSIDE the field ══ */
+        .tol-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tol-group-label {
+            font-size: 0.74em;
+            font-weight: 700;
+            color: #1a1a2e;
+            background: #e8f0fe;
+            padding: 3px 6px;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            white-space: nowrap;
+        }
+        .tol-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .tol-item-label {
+            font-size: 0.72em;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        /* The spinner container — border wraps input + both arrow buttons */
+        .tol-spinner {
+            display: flex;
+            align-items: stretch;
+            border: 1.5px solid #b0bfea;
+            border-radius: 5px;
+            overflow: hidden;
+            background: white;
+            height: 34px;              /* match enlarged input height */
+        }
+
+        /* Number input inside spinner */
+        .tol-spinner input[type="number"] {
+            width: 54px;
+            border: none;
+            text-align: center;
+            font-size: 1.17em;         /* 50% larger — was 0.78em */
+            font-weight: 700;
+            color: #1a1a2e;
+            padding: 0 2px;
+            -moz-appearance: textfield;
+            background: white;
+            outline: none;
+        }
+        .tol-spinner input[type="number"]::-webkit-inner-spin-button,
+        .tol-spinner input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+        /* Arrow column — stacked ▲ / ▼ inside the field on the right */
+        .tol-arrows-col {
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #b0bfea;
+            flex-shrink: 0;
+        }
+        .tol-arrow-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            width: 20px;
+            flex: 1;
+            font-size: 0.55em;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            user-select: none;
+            transition: background 0.12s;
+            padding: 0;
+        }
+        .tol-arrow-btn:first-child {
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+        .tol-arrow-btn:hover { background: #4f5fc7; }
+
+        .tol-unit {
+            font-size: 1.05em;         /* 50% larger — was 0.7em */
+            color: #667eea;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* Buttons */
+        .btn-search {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 5px;
+            font-size: 0.82em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-search:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(102,126,234,0.4); }
+
+        .btn-reset {
+            background: #e0e0e0;
+            color: #333;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 5px;
+            font-size: 0.82em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-reset:hover { background: #d0d0d0; }
+
+        .btn-export {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 5px;
+            font-size: 0.82em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-export:hover { background: #218838; }
+
+        .saved-indicator {
+            font-size: 0.7em;
+            color: #28a745;
+            opacity: 0;
+            transition: opacity 0.5s;
+            white-space: nowrap;
+        }
+        .saved-indicator.show { opacity: 1; }
+
+        /* ══ RESULTS SECTION ══ */
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            padding: 12px 16px;
+            min-height: calc(100vh - 260px);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .results-header h2 { color: #0f3460; font-size: 1.0em; font-weight: 700; }
+        .result-count {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-bar-label {
+            font-size: 0.78em;
+            font-weight: 700;
+            color: #333;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .filter-chips-inline { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+        .filter-group-inline { display: flex; align-items: center; gap: 3px; }
+        .filter-group-inline h4 {
+            font-size: 0.68em; color: #888; text-transform: uppercase;
+            letter-spacing: 0.4px; white-space: nowrap; margin-right: 2px;
+        }
+        .filter-chip {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 7px; background: white; border: 1.5px solid #ddd;
+            border-radius: 10px; cursor: pointer; font-size: 0.72em;
+            transition: all 0.2s; user-select: none;
+        }
+        .filter-chip:hover { border-color: #667eea; color: #667eea; }
+        .filter-chip input[type="checkbox"] { width: 10px; height: 10px; cursor: pointer; accent-color: #667eea; }
+        .filter-chip.checked { background: #667eea; color: white; border-color: #667eea; }
+
+        /* Table */
+        .table-wrapper { overflow: auto; border-radius: 8px; border: 1px solid #ddd; flex: 1; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.78em; min-width: 1200px; }
+        thead {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+            color: white; position: sticky; top: 0; z-index: 10;
+        }
+        th {
+            padding: 9px 10px; text-align: left; font-weight: 600;
+            cursor: pointer; user-select: none; white-space: nowrap; font-size: 0.82em;
+        }
+        th:hover { background: rgba(255,255,255,0.1); }
+        th .si { margin-left: 3px; opacity: 0.5; font-size: 0.78em; }
+        td { padding: 7px 10px; border-bottom: 1px solid #eee; white-space: nowrap; }
+        tbody tr { transition: background-color 0.15s; }
+        tbody tr:hover { background-color: #f0f4ff; }
+        tbody tr:nth-child(even) { background-color: #fafafa; }
+        tbody tr:nth-child(even):hover { background-color: #f0f4ff; }
+
+        .match-badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 0.76em; font-weight: 700; }
+        .match-excellent { background: #d4edda; color: #155724; }
+        .match-good      { background: #cfe2ff; color: #084298; }
+        .match-fair      { background: #fff3cd; color: #664d03; }
+
+        .score-bar {
+            display: inline-block; width: 36px; height: 5px; background: #eee;
+            border-radius: 3px; vertical-align: middle; margin-left: 3px; overflow: hidden;
+        }
+        .score-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #667eea, #764ba2); }
+
+        .no-results { text-align: center; padding: 40px 20px; color: #999; }
+        .no-results p { font-size: 0.9em; margin-bottom: 6px; }
+
+        .loading { text-align: center; padding: 30px; color: #667eea; }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid #667eea;
+            border-radius: 50%; width: 30px; height: 30px;
+            animation: spin 1s linear infinite; margin: 0 auto 12px;
+        }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+        .error-message   { background: #f8d7da; color: #721c24; padding: 9px 12px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid #f5c6cb; font-size: 0.82em; }
+        .success-message { background: #d4edda; color: #155724; padding: 9px 12px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid #c3e6cb; font-size: 0.82em; }
+
+        @media (max-width: 1024px) {
+            .header-spacer { display: none; }
+            .help-grid { grid-template-columns: 1fr; }
+            .params-row { gap: 6px; }
+        }
+        @media (max-width: 768px) {
+            .header-text h1 { font-size: 1.2em; }
+            .header-logo { height: 40px; }
+            .header-logo img { height: 32px; }
+            table { font-size: 0.7em; }
+            th, td { padding: 5px 7px; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <!-- ══════════ HEADER ══════════ -->
+    <div class="header">
+        <div class="header-logo">
+            <img src="veolia-logo.png" alt="Veolia">
+        </div>
+        <div class="header-text">
+            <h1>UV Competition Database Matcher</h1>
+            <p>Find matching UV systems based on your project parameters</p>
+        </div>
+        <div class="header-spacer"></div>
+    </div>
+
+    <!-- ══════════ HELP PANEL ══════════ -->
+    <div class="help-bar">
+        <button class="help-toggle" onclick="toggleHelp()">
+            <span id="helpArrow">▶</span>
+            📖 How to connect your database — click to expand instructions
+        </button>
+        <div class="help-content" id="helpContent">
+            <div class="help-grid">
+                <div class="help-section">
+                    <h3>📊 Option A — Google Sheets (Recommended)</h3>
+                    <ol>
+                        <li>Open your UV Competition Database spreadsheet in <strong>Google Sheets</strong></li>
+                        <li>Click <strong>File → Share → Share with others</strong></li>
+                        <li>Under "General access", change to <strong>"Anyone with the link"</strong></li>
+                        <li>Set the role to <strong>Viewer</strong> and click <strong>Done</strong></li>
+                        <li>Click <strong>Copy link</strong> — it will look like:<br>
+                            <code>https://docs.google.com/spreadsheets/d/1ABC...XYZ/edit?usp=sharing</code>
+                        </li>
+                        <li>Paste that link into the <strong>"Google Sheets / Online URL"</strong> field</li>
+                        <li>The app automatically converts it to a CSV export URL</li>
+                    </ol>
+                    <div class="help-note">⚠️ <strong>CORS Warning:</strong> Google Sheets fetching only works when served from a web server, NOT from <code>file:///...</code></div>
+                    <div class="help-tip">✅ <strong>Tip:</strong> For multiple tabs, add <code>&amp;gid=XXXXXXX</code> to the URL.</div>
+                </div>
+                <div class="help-section">
+                    <h3>📁 Option B — Local Excel or CSV File</h3>
+                    <ol>
+                        <li>Export or save your database as <strong>.xlsx</strong> or <strong>.csv</strong></li>
+                        <li>Make sure <strong>Row 1 contains the column headers</strong></li>
+                        <li>Click <strong>"Choose File"</strong> under the Local File section</li>
+                        <li>Select your file and click <strong>Search</strong></li>
+                    </ol>
+                    <div class="help-tip">✅ <strong>Best option for offline use</strong> — works directly from your desktop.</div>
+                    <div class="help-note">⚠️ For <strong>.xlsx</strong> files, SheetJS is loaded from CDN — internet required on first use.</div>
+                </div>
+                <div class="help-section">
+                    <h3>🌐 Option C — Host the App</h3>
+                    <ol>
+                        <li><strong>GitHub Pages:</strong> Upload HTML → Settings → Pages → Deploy</li>
+                        <li><strong>Netlify:</strong> Drag &amp; drop at <code>netlify.com/drop</code></li>
+                        <li><strong>VS Code Live Server:</strong> Right-click → "Open with Live Server"</li>
+                        <li><strong>Python:</strong> <code>python -m http.server 8080</code> then open <code>http://localhost:8080</code></li>
+                    </ol>
+                </div>
+                <div class="help-section">
+                    <h3>🗂️ Required Column Headers</h3>
+                    <ul>
+                        <li><code>Date</code>, <code>Country</code>, <code>Region</code>, <code>Project Name</code></li>
+                        <li><code>Application</code>, <code>Open Channel/Closed Vessel</code></li>
+                        <li><code>Competitor</code>, <code>Model</code>, <code>Qty. of Units</code></li>
+                        <li><code>Flow Rate [MGD]</code>, <code>Flow Rate [m³/h]</code></li>
+                        <li><code>UVT [%/1 cm]</code>, <code>UV Dose [mJ/cm²]</code>, <code>Type of Dose</code></li>
+                        <li><code>No. of Channels</code>, <code>No. of Lamps Total</code>, <code>No. of Lamps Duty</code></li>
+                        <li><code>Power Consumption [kW]</code>, <code>Price [U$]</code>, <code>Price per Lamp [U$ / lamp]</code></li>
+                        <li><code>Comments</code></li>
+                    </ul>
+                    <div class="help-tip">✅ The app uses fuzzy column matching — minor header variations and Excel newlines are handled automatically.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ CONTROLS BAR ══════════ -->
+    <div class="controls-bar">
+
+        <!-- Row 1: Data Sources -->
+        <div class="source-row">
+            <span class="source-label">📊 Sheets URL:</span>
+            <input type="text" id="dataSourceUrl" class="source-url-input" placeholder="https://docs.google.com/spreadsheets/d/...">
+            <span class="source-divider">— OR —</span>
+            <span class="file-label">📁 Local File:</span>
+            <input type="file" id="localFile" class="file-input" accept=".csv,.xlsx,.xls">
+        </div>
+
+        <!-- Row 2: Parameters -->
+        <div class="params-row">
+
+            <!-- Flow -->
+            <div class="param-group">
+                <span class="param-label">Flow:</span>
+                <input type="number" id="flowRate" class="param-input" placeholder="e.g. 5" step="0.1">
+                <button class="unit-toggle active" id="btnMGD" onclick="toggleFlowUnit('mgd')">MGD</button>
+                <button class="unit-toggle"        id="btnM3H" onclick="toggleFlowUnit('m3h')">m³/h</button>
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- UVT -->
+            <div class="param-group">
+                <span class="param-label">UVT (%):</span>
+                <input type="number" id="uvt" class="param-input narrow" placeholder="e.g. 75" step="0.1" min="0" max="100">
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- Dose -->
+            <div class="param-group">
+                <span class="param-label">Dose (mJ/cm²):</span>
+                <input type="number" id="uvDose" class="param-input narrow" placeholder="e.g. 40" step="0.1">
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- Dose Type -->
+            <div class="param-group">
+                <span class="param-label">Dose Type:</span>
+                <select id="doseType" class="param-select">
+                    <option value="">— Any —</option>
+                    <option value="UVDGM">UVDGM</option>
+                    <option value="NWRI">NWRI</option>
+                    <option value="NWRI 2012">NWRI 2012</option>
+                    <option value="MS2 RED">MS2 RED</option>
+                    <option value="MS2">MS2</option>
+                    <option value="PSS">PSS</option>
+                    <option value="IUVA">IUVA</option>
+                    <option value="Dillon">Dillon</option>
+                    <option value="T1 RED">T1 RED</option>
+                    <option value="USEPA">USEPA</option>
+                    <option value="ACS">ACS</option>
+                </select>
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- Channels -->
+            <div class="param-group">
+                <span class="param-label">Channels:</span>
+                <input type="number" id="numChannels" class="param-input narrow" placeholder="e.g. 2" step="1" min="1">
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- Application -->
+            <div class="param-group">
+                <span class="param-label">Application:</span>
+                <select id="application" class="param-select">
+                    <option value="">— Any —</option>
+                    <option value="Wastewater">Wastewater</option>
+                    <option value="Drinking Water">Drinking Water</option>
+                    <option value="Process water">Process water</option>
+                    <option value="TOC Reduction">TOC Reduction</option>
+                    <option value="Ozone Destruction">Ozone Destruction</option>
+                </select>
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- Channel Type -->
+            <div class="param-group">
+                <span class="param-label">Channel Type:</span>
+                <select id="channelType" class="param-select">
+                    <option value="">— Any —</option>
+                    <option value="Open Channel">Open Channel</option>
+                    <option value="Closed Vessel">Closed Vessel</option>
+                </select>
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- ══ TOLERANCE MATCH FIELDS — absolute ± values, arrows INSIDE ══ -->
+            <div class="tol-group">
+                <span class="tol-group-label">⚙️ Tolerance Match (±):</span>
+
+                <!-- Flow Tolerance -->
+                <div class="tol-item">
+                    <span class="tol-item-label">Flow</span>
+                    <div class="tol-spinner">
+                        <input type="number" id="flowTolerance" value="1.0" min="0" step="0.1"
+                               oninput="clampTol('flowTolerance')" onchange="saveSettings()">
+                        <div class="tol-arrows-col">
+                            <button class="tol-arrow-btn"
+                                onmousedown="startHold('flowTolerance',+0.1)" onmouseup="stopHold()" onmouseleave="stopHold()"
+                                ontouchstart="startHold('flowTolerance',+0.1)" ontouchend="stopHold()">▲</button>
+                            <button class="tol-arrow-btn"
+                                onmousedown="startHold('flowTolerance',-0.1)" onmouseup="stopHold()" onmouseleave="stopHold()"
+                                ontouchstart="startHold('flowTolerance',-0.1)" ontouchend="stopHold()">▼</button>
+                        </div>
+                    </div>
+                    <span class="tol-unit" id="flowTolUnit">MGD</span>
+                </div>
+
+                <!-- UVT Tolerance -->
+                <div class="tol-item" style="margin-left:6px;">
+                    <span class="tol-item-label">UVT</span>
+                    <div class="tol-spinner">
+                        <input type="number" id="uvtTolerance" value="5.0" min="0" step="0.1"
+                               oninput="clampTol('uvtTolerance')" onchange="saveSettings()">
+                        <div class="tol-arrows-col">
+                            <button class="tol-arrow-btn"
+                                onmousedown="startHold('uvtTolerance',+0.1)" onmouseup="stopHold()" onmouseleave="stopHold()"
+                                ontouchstart="startHold('uvtTolerance',+0.1)" ontouchend="stopHold()">▲</button>
+                            <button class="tol-arrow-btn"
+                                onmousedown="startHold('uvtTolerance',-0.1)" onmouseup="stopHold()" onmouseleave="stopHold()"
+                                ontouchstart="startHold('uvtTolerance',-0.1)" ontouchend="stopHold()">▼</button>
+                        </div>
+                    </div>
+                    <span class="tol-unit">%</span>
+                </div>
+
+                <!-- Dose Tolerance -->
+                <div class="tol-item" style="margin-left:6px;">
+                    <span class="tol-item-label">Dose</span>
+                    <div class="tol-spinner">
+                        <input type="number" id="doseTolerance" value="5.0" min="0" step="0.1"
+                               oninput="clampTol('doseTolerance')" onchange="saveSettings()">
+                        <div class="tol-arrows-col">
+                            <button class="tol-arrow-btn"
+                                onmousedown="startHold('doseTolerance',+0.1)" onmouseup="stopHold()" onmouseleave="stopHold()"
+                                ontouchstart="startHold('doseTolerance',+0.1)" ontouchend="stopHold()">▲</button>
+                            <button class="tol-arrow-btn"
+                                onmousedown="startHold('doseTolerance',-0.1)" onmouseup="stopHold()" onmouseleave="stopHold()"
+                                ontouchstart="startHold('doseTolerance',-0.1)" ontouchend="stopHold()">▼</button>
+                        </div>
+                    </div>
+                    <span class="tol-unit">mJ/cm²</span>
+                </div>
+            </div>
+
+            <div class="bar-sep"></div>
+
+            <!-- Action Buttons -->
+            <button class="btn-search" onclick="searchMatches()">🔍 Search</button>
+            <button class="btn-reset"  onclick="resetForm()">↺ Reset</button>
+            <button class="btn-export" onclick="exportResults()">📥 Export CSV</button>
+            <span class="saved-indicator" id="savedIndicator">✓ Settings saved</span>
+
+        </div>
+    </div>
+
+    <!-- ══════════ RESULTS SECTION ══════════ -->
+    <div class="results-section">
+
+        <div class="results-header">
+            <h2>Matching Results <span id="rangeLabel" style="font-size:0.72em;color:#888;font-weight:400;"></span></h2>
+            <div class="result-count" id="resultCount">0 matches</div>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar" id="filterSection" style="display:none;">
+            <span class="filter-bar-label">🔽 Filter:</span>
+            <div class="filter-chips-inline" id="filterOptions"></div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Date<span class="si">⇅</span></th>
+                        <th onclick="sortTable(1)">Country<span class="si">⇅</span></th>
+                        <th onclick="sortTable(2)">Region<span class="si">⇅</span></th>
+                        <th onclick="sortTable(3)">Project<span class="si">⇅</span></th>
+                        <th onclick="sortTable(4)">Application<span class="si">⇅</span></th>
+                        <th onclick="sortTable(5)">Type<span class="si">⇅</span></th>
+                        <th onclick="sortTable(6)">Competitor<span class="si">⇅</span></th>
+                        <th onclick="sortTable(7)">Model<span class="si">⇅</span></th>
+                        <th onclick="sortTable(8)">Qty<span class="si">⇅</span></th>
+                        <th onclick="sortTable(9)">Flow (MGD)<span class="si">⇅</span></th>
+                        <th onclick="sortTable(10)">Flow (m³/h)<span class="si">⇅</span></th>
+                        <th onclick="sortTable(11)">UVT (%)<span class="si">⇅</span></th>
+                        <th onclick="sortTable(12)">Dose (mJ/cm²)<span class="si">⇅</span></th>
+                        <th onclick="sortTable(13)">Dose Type<span class="si">⇅</span></th>
+                        <th onclick="sortTable(14)">Channels<span class="si">⇅</span></th>
+                        <th onclick="sortTable(15)">Lamps Total<span class="si">⇅</span></th>
+                        <th onclick="sortTable(16)">Lamps Duty<span class="si">⇅</span></th>
+                        <th onclick="sortTable(17)">Power (kW)<span class="si">⇅</span></th>
+                        <th onclick="sortTable(18)">Price (US$)<span class="si">⇅</span></th>
+                        <th onclick="sortTable(19)">$/Lamp<span class="si">⇅</span></th>
+                        <th onclick="sortTable(20)">Comments<span class="si">⇅</span></th>
+                        <th onclick="sortTable(21)">Match<span class="si">⇅</span></th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <tr>
+                        <td colspan="22" class="no-results">
+                            <p>Enter your parameters and click <strong>Search</strong> to find matches</p>
+                            <p style="font-size:0.82em;margin-top:6px;">📖 Click the help bar above for instructions on connecting your database</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- SheetJS for Excel parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let allData      = [];
+let filteredData = [];
+let displayData  = [];
+let currentFlowUnit = 'mgd';
+let sortConfig   = { colIndex: null, direction: 'asc' };
+const STORAGE_KEY = 'uvMatcherSettings_v6';
+
+// ═══════════════════════════════════════════════
+//  TOLERANCE SPINNER HELPERS  (0.1 steps, min 0.1)
+// ═══════════════════════════════════════════════
+function adjustTol(id, delta) {
+    const el = document.getElementById(id);
+    let val = Math.round((parseFloat(el.value || 0) + delta) * 10) / 10;
+    val = Math.max(0.1, val);
+    el.value = val.toFixed(1);
+    saveSettings();
+}
+
+// ── Hold-to-repeat with acceleration ──
+let _holdTimer   = null;   // setTimeout handle (initial delay)
+let _holdInterval = null;  // setInterval handle (repeat)
+let _holdSteps   = 0;      // counts repeats for acceleration
+
+function startHold(id, delta) {
+    // Fire once immediately on press
+    adjustTol(id, delta);
+    _holdSteps = 0;
+
+    // After 400 ms, start repeating
+    _holdTimer = setTimeout(() => {
+        _holdInterval = setInterval(() => {
+            _holdSteps++;
+            // Accelerate: every 10 steps increase the jump size
+            const multiplier = _holdSteps < 10 ? 1
+                             : _holdSteps < 25 ? 5
+                             : 10;
+            adjustTol(id, delta * multiplier);
+        }, 60); // repeat every 60 ms
+    }, 400);
+}
+
+function stopHold() {
+    clearTimeout(_holdTimer);
+    clearInterval(_holdInterval);
+    _holdTimer    = null;
+    _holdInterval = null;
+    _holdSteps    = 0;
+}
+
+function clampTol(id) {
+    const el = document.getElementById(id);
+    let val = parseFloat(el.value);
+    if (isNaN(val) || val < 0.1) val = 0.1;
+    el.value = val.toFixed(1);
+    saveSettings();
+}
+
+// ═══════════════════════════════════════════════
+//  FLOW UNIT LABEL on tolerance field
+// ═══════════════════════════════════════════════
+function updateFlowTolUnit() {
+    const el = document.getElementById('flowTolUnit');
+    if (el) el.textContent = currentFlowUnit === 'mgd' ? 'MGD' : 'm³/h';
+}
+
+// ═══════════════════════════════════════════════
+//  HELP TOGGLE
+// ═══════════════════════════════════════════════
+function toggleHelp() {
+    const c = document.getElementById('helpContent');
+    const a = document.getElementById('helpArrow');
+    const open = c.classList.toggle('open');
+    a.textContent = open ? '▼' : '▶';
+}
+
+// ═══════════════════════════════════════════════
+//  LOCALSTORAGE
+// ═══════════════════════════════════════════════
+function saveSettings() {
+    const s = {
+        dataSourceUrl : document.getElementById('dataSourceUrl').value,
+        flowRate      : document.getElementById('flowRate').value,
+        flowUnit      : currentFlowUnit,
+        uvt           : document.getElementById('uvt').value,
+        uvDose        : document.getElementById('uvDose').value,
+        doseType      : document.getElementById('doseType').value,
+        numChannels   : document.getElementById('numChannels').value,
+        application   : document.getElementById('application').value,
+        channelType   : document.getElementById('channelType').value,
+        flowTolerance : document.getElementById('flowTolerance').value,
+        doseTolerance : document.getElementById('doseTolerance').value,
+        uvtTolerance  : document.getElementById('uvtTolerance').value,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    const ind = document.getElementById('savedIndicator');
+    ind.classList.add('show');
+    setTimeout(() => ind.classList.remove('show'), 2000);
+}
+
+function restoreSettings() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+        const s = JSON.parse(raw);
+        if (s.dataSourceUrl) document.getElementById('dataSourceUrl').value = s.dataSourceUrl;
+        if (s.flowRate)      document.getElementById('flowRate').value      = s.flowRate;
+        if (s.uvt)           document.getElementById('uvt').value           = s.uvt;
+        if (s.uvDose)        document.getElementById('uvDose').value        = s.uvDose;
+        if (s.doseType)      document.getElementById('doseType').value      = s.doseType;
+        if (s.numChannels)   document.getElementById('numChannels').value   = s.numChannels;
+        if (s.application)   document.getElementById('application').value   = s.application;
+        if (s.channelType)   document.getElementById('channelType').value   = s.channelType;
+        if (s.flowTolerance) document.getElementById('flowTolerance').value = parseFloat(s.flowTolerance).toFixed(1);
+        if (s.doseTolerance) document.getElementById('doseTolerance').value = parseFloat(s.doseTolerance).toFixed(1);
+        if (s.uvtTolerance)  document.getElementById('uvtTolerance').value  = parseFloat(s.uvtTolerance).toFixed(1);
+        if (s.flowUnit) {
+            currentFlowUnit = s.flowUnit;
+            document.getElementById('btnMGD').classList.toggle('active', s.flowUnit === 'mgd');
+            document.getElementById('btnM3H').classList.toggle('active', s.flowUnit === 'm3h');
+            updateFlowTolUnit();
+        }
+    } catch(e) { console.warn('Restore failed:', e); }
+}
+
+function attachAutoSave() {
+    ['dataSourceUrl','flowRate','uvt','uvDose','doseType','numChannels',
+     'application','channelType','flowTolerance','doseTolerance','uvtTolerance'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', saveSettings);
+        el.addEventListener('input', () => { clearTimeout(el._t); el._t = setTimeout(saveSettings, 600); });
+    });
+}
+
+// ═══════════════════════════════════════════════
+//  UNIT TOGGLE
+// ═══════════════════════════════════════════════
+function toggleFlowUnit(unit) {
+    if (unit === currentFlowUnit) return; // no change needed
+
+    const flowInput = document.getElementById('flowRate');
+    const currentVal = parseFloat(flowInput.value);
+
+    // Convert the existing value to the new unit
+    if (!isNaN(currentVal) && currentVal > 0) {
+        if (unit === 'm3h') {
+            // Converting from MGD → m³/h
+            flowInput.value = (currentVal * 157.72549167).toFixed(1);
+        } else {
+            // Converting from m³/h → MGD
+            flowInput.value = (currentVal / 157.72549167).toFixed(4);
+        }
+    }
+
+    currentFlowUnit = unit;
+    document.getElementById('btnMGD').classList.toggle('active', unit === 'mgd');
+    document.getElementById('btnM3H').classList.toggle('active', unit === 'm3h');
+    updateFlowTolUnit();
+    saveSettings();
+}
+
+
+function toMGD(v, unit) { return unit === 'mgd' ? v : v / 157.72549167; }
+
+// ═══════════════════════════════════════════════
+//  DATA LOADING
+// ═══════════════════════════════════════════════
+async function loadData() {
+    const fi = document.getElementById('localFile');
+    if (fi.files && fi.files.length > 0) return await loadLocalFile(fi.files[0]);
+    const url = document.getElementById('dataSourceUrl').value.trim();
+    if (url) return await loadFromURL(url);
+    showMessage('Please provide a data source — paste a Google Sheets URL or select a local file.', 'error');
+    return false;
+}
+
+async function loadFromURL(url) {
+    try {
+        showMessage('⏳ Loading data from URL…', 'loading');
+        let csvUrl = url;
+        if (url.includes('docs.google.com/spreadsheets')) {
+            const id  = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
+            const gid = (url.match(/[#&?]gid=(\d+)/) || [])[1] || '0';
+            if (id) csvUrl = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+        }
+        const res = await fetch(csvUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
+        const text = await res.text();
+        allData = parseCSV(text);
+        if (!allData.length) throw new Error('No data rows found.');
+        showMessage(`✅ Loaded <strong>${allData.length}</strong> records from URL.`, 'success');
+        return true;
+    } catch(e) {
+        showMessage(`❌ URL load failed: ${e.message}<br><small>Make sure the sheet is shared publicly AND the app is served from a web server (not file://). See the help panel above.</small>`, 'error');
+        return false;
+    }
+}
+
+async function loadLocalFile(file) {
+    return new Promise(resolve => {
+        showMessage('⏳ Reading local file…', 'loading');
+        const reader = new FileReader();
+        if (file.name.match(/\.csv$/i)) {
+            reader.onload = e => {
+                allData = parseCSV(e.target.result);
+                if (!allData.length) { showMessage('❌ No data found in CSV.', 'error'); resolve(false); return; }
+                showMessage(`✅ Loaded <strong>${allData.length}</strong> records from CSV.`, 'success');
+                resolve(true);
+            };
+            reader.readAsText(file);
+        } else {
+            reader.onload = e => {
+                try {
+                    const wb = XLSX.read(e.target.result, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    allData = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+                    if (!allData.length) { showMessage('❌ No data found in Excel file.', 'error'); resolve(false); return; }
+                    showMessage(`✅ Loaded <strong>${allData.length}</strong> records from Excel.`, 'success');
+                    resolve(true);
+                } catch(err) { showMessage(`❌ Excel parse error: ${err.message}`, 'error'); resolve(false); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        reader.onerror = () => { showMessage('❌ File read error.', 'error'); resolve(false); };
+    });
+}
+
+// ═══════════════════════════════════════════════
+//  CSV PARSER
+// ═══════════════════════════════════════════════
+function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    const headers = parseLine(lines[0]);
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+        const vals = parseLine(lines[i]);
+        if (vals.every(v => v === '')) continue;
+        const rec = {};
+        headers.forEach((h, idx) => { rec[h.trim()] = (vals[idx] || '').trim(); });
+        data.push(rec);
+    }
+    return data;
+}
+
+function parseLine(line) {
+    const res = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+        else if (c === ',' && !inQ) { res.push(cur); cur = ''; }
+        else cur += c;
+    }
+    res.push(cur);
+    return res;
+}
+
+// ═══════════════════════════════════════════════
+//  FIELD RESOLVER
+// ═══════════════════════════════════════════════
+function normaliseKey(k) {
+    return k.toLowerCase()
+            .replace(/[\r\n\t]+/g, ' ')
+            .replace(/[[\]()\/\\²³µ°]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+}
+
+function gf(rec, ...keys) {
+    for (const k of keys) {
+        if (rec[k] !== undefined && rec[k] !== '') return rec[k];
+    }
+    const rkeys = Object.keys(rec);
+    const normRkeys = rkeys.map(normaliseKey);
+    for (const k of keys) {
+        const nk = normaliseKey(k);
+        let idx = normRkeys.indexOf(nk);
+        if (idx !== -1 && rec[rkeys[idx]] !== '') return rec[rkeys[idx]];
+        idx = normRkeys.findIndex(rk => rk.includes(nk) || nk.includes(rk));
+        if (idx !== -1 && rec[rkeys[idx]] !== '') return rec[rkeys[idx]];
+    }
+    return '';
+}
+
+function safeNum(v) {
+    if (v === null || v === undefined) return 0;
+    const s = String(v).replace(/[$,\s]/g, '').replace(/[^\d.\-]/g, '');
+    return parseFloat(s) || 0;
+}
+
+const getFlowMGD = r => safeNum(gf(r,
+    'Flow Rate [MGD]', 'Flow Rate\n[MGD]', 'Flow Rate [MGD] ', 'FlowMGD',
+    'Flow Rate(MGD)', 'Flow [MGD]', 'flow rate mgd'));
+
+const getFlowM3H = r => safeNum(gf(r,
+    'Flow Rate [m³/h]', 'Flow Rate [m3/h]', 'Flow Rate\n[m³/h]', 'Flow Rate \n[m³/h]',
+    'Flow Rate\n[m3/h]', 'FlowM3H', 'Flow Rate (m³/h)', 'Flow Rate (m3/h)',
+    'Flow [m³/h]', 'Flow [m3/h]', 'flow rate m3 h', 'flow rate m h'));
+
+const getDose = r => safeNum(gf(r,
+    'UV Dose [mJ/cm²]', 'UV Dose [mJ/cm2]', 'UV Dose\n[mJ/cm²]', 'UV Dose\n[mJ/cm2]',
+    'UVDose', 'UV Dose (mJ/cm²)', 'UV Dose (mJ/cm2)', 'Dose [mJ/cm²]',
+    'uv dose mj cm', 'UV Dose'));
+
+const getUVT = r => safeNum(gf(r,
+    'UVT [%/1 cm]', 'UVT\n[%/1 cm]', 'UVT [%/cm]', 'UVT (%/1cm)',
+    'UVT (%)', 'UVT', 'uvt % 1 cm', 'uvt'));
+
+const getChannels = r => {
+    const v = gf(r, 'No. of Channels', 'No. of Channels ', 'No. of\nChannels',
+                    'Num Channels', 'Channels', '# Channels', 'no of channels');
+    return parseInt(v) || 0;
+};
+
+const getDoseType = r => gf(r,
+    'Type of Dose', 'Type of Dose ', 'DoseType', 'Dose Type', 'type of dose');
+
+const getPrice = r => safeNum(gf(r,
+    'Price [U$]', 'Price\n[U$]', 'Price [USD]', 'Price (U$)', 'Price (USD)',
+    'Price', 'price u', 'price usd'));
+
+const getPPL = r => safeNum(gf(r,
+    'Price per Lamp [U$ / lamp]', 'Price per Lamp\n[U$ / lamp]',
+    'Price per Lamp [USD/lamp]', 'Price per Lamp (U$/lamp)',
+    'PricePerLamp', 'Price/Lamp', 'price per lamp'));
+
+const getLampsT = r => gf(r,
+    'No. of Lamps Total', 'No. of Lamps\nTotal', 'No. of Lamps Total ',
+    'Total Lamps', 'Lamps Total', 'no of lamps total') || '—';
+
+const getLampsD = r => gf(r,
+    'No. of Lamps Duty', 'No. of Lamps\nDuty', 'No. of Lamps Duty ',
+    'Duty Lamps', 'Lamps Duty', 'no of lamps duty') || '—';
+
+const getPower = r => gf(r,
+    'Power Consumption [kW]', 'Power Consumption\n[kW]', 'Power Consumption (kW)',
+    'Power [kW]', 'Power (kW)', 'Power', 'power consumption kw') || '—';
+
+const getQty = r => gf(r,
+    'Qty. of Units', 'Qty. of Units ', 'Qty of Units', 'Qty.\nof Units',
+    'Qty', 'Quantity', 'No. of Units', 'qty of units') || '—';
+
+const getComments = r => gf(r, 'Comments', 'Comment', 'Notes', 'Remarks') || '—';
+
+// ═══════════════════════════════════════════════
+//  MATCH LOGIC
+//  Gate: solely ± absolute tolerances for Flow, UVT, Dose
+//  Score: proximity 0–100% within each window (for display/sort)
+// ═══════════════════════════════════════════════
+function calcMatch(p, r) {
+    const dbFlowMGD = getFlowMGD(r);
+    const dbFlowM3H = getFlowM3H(r);
+    const dbDose    = getDose(r);
+    const dbUVT     = getUVT(r);
+
+    // Choose which flow value to compare based on active unit
+    const inputFlow  = currentFlowUnit === 'mgd' ? p.flowMGD  : p.flowM3H;
+    const dbFlow     = currentFlowUnit === 'mgd' ? dbFlowMGD  : dbFlowM3H;
+    const flowTolAbs = p.flowTolAbs;   // already in the correct unit
+
+    let score = 0;
+    let components = 0;
+
+    // ── FLOW gate (required) ──
+    if (inputFlow > 0) {
+        if (dbFlow <= 0) return null;
+        const diff = Math.abs(inputFlow - dbFlow);
+        if (diff > flowTolAbs) return null;
+        score += 100 * (1 - diff / flowTolAbs);
+        components++;
+    }
+
+    // ── UVT gate ──
+    if (p.uvt > 0) {
+        if (dbUVT <= 0) return null;
+        const diff = Math.abs(p.uvt - dbUVT);
+        if (diff > p.uvtTolAbs) return null;
+        score += 100 * (1 - diff / p.uvtTolAbs);
+        components++;
+    }
+
+    // ── DOSE gate ──
+    if (p.uvDose > 0) {
+        if (dbDose <= 0) return null;
+        const diff = Math.abs(p.uvDose - dbDose);
+        if (diff > p.doseTolAbs) return null;
+        score += 100 * (1 - diff / p.doseTolAbs);
+        components++;
+    }
+
+    if (components === 0) return null;
+
+    // ── Optional hard filters ──
+    if (p.application) {
+        const a = gf(r, 'Application');
+        if (a && !a.toLowerCase().includes(p.application.toLowerCase())) return null;
+    }
+    if (p.channelType) {
+        const ct = gf(r, 'Open Channel/Closed Vessel', 'Open Channel/\nClosed Vessel',
+                        'Open Channel / Closed Vessel', 'Channel Type');
+        if (ct && !ct.toLowerCase().includes(p.channelType.toLowerCase())) return null;
+    }
+
+    const avgScore = Math.round(score / components);
+    const quality  = avgScore >= 75 ? 'excellent' : avgScore >= 50 ? 'good' : 'fair';
+    return { score: avgScore, quality };
+}
+
+// ═══════════════════════════════════════════════
+//  SEARCH
+// ═══════════════════════════════════════════════
+async function searchMatches() {
+    saveSettings();
+    const ok = await loadData();
+    if (!ok) return;
+
+    const flowRaw = parseFloat(document.getElementById('flowRate').value);
+    if (!flowRaw) { showMessage('⚠️ Please enter a Flow Rate.', 'error'); return; }
+
+    const flowMGD    = toMGD(flowRaw, currentFlowUnit);
+    const flowM3H    = currentFlowUnit === 'mgd' ? flowRaw * 157.72549167 : flowRaw;
+    const flowTolAbs = parseFloat(document.getElementById('flowTolerance').value) || 1.0;
+    const uvtTolAbs  = parseFloat(document.getElementById('uvtTolerance').value)  || 5.0;
+    const doseTolAbs = parseFloat(document.getElementById('doseTolerance').value) || 5.0;
+
+    const p = {
+        flowMGD,
+        flowM3H,
+        uvt         : parseFloat(document.getElementById('uvt').value)      || 0,
+        uvDose      : parseFloat(document.getElementById('uvDose').value)    || 0,
+        doseType    : document.getElementById('doseType').value,
+        numChannels : parseInt(document.getElementById('numChannels').value) || 0,
+        application : document.getElementById('application').value,
+        channelType : document.getElementById('channelType').value,
+        flowTolAbs,
+        uvtTolAbs,
+        doseTolAbs,
+    };
+
+    document.getElementById('rangeLabel').textContent =
+        `(±${flowTolAbs} ${currentFlowUnit === 'mgd' ? 'MGD' : 'm³/h'} | ±${uvtTolAbs}% UVT | ±${doseTolAbs} mJ/cm² Dose)`;
+
+    filteredData = [];
+    for (const r of allData) {
+        const m = calcMatch(p, r);
+        if (m) filteredData.push({ ...r, _score: m.score, _quality: m.quality });
+    }
+    filteredData.sort((a,b) => b._score - a._score);
+    displayData = [...filteredData];
+
+    renderTable(displayData);
+    buildFilters(filteredData);
+    showMessage('', '');
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER TABLE
+// ═══════════════════════════════════════════════
+function renderTable(data) {
+    const tbody = document.getElementById('resultsBody');
+    document.getElementById('resultCount').textContent = `${data.length} match${data.length !== 1 ? 'es' : ''}`;
+
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="22" class="no-results">
+            <p>😕 No matches found.</p>
+            <p style="font-size:0.82em;">Try increasing the ± tolerance values or relaxing your filters.</p>
+        </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(r => {
+        const flow  = getFlowMGD(r), flowM = getFlowM3H(r);
+        const dose  = getDose(r),    uvt   = getUVT(r), ch = getChannels(r);
+        const price = getPrice(r),   ppl   = getPPL(r);
+        const comments     = getComments(r);
+        const shortComment = comments.length > 40 ? comments.slice(0,40) + '…' : comments;
+
+        const fmtFlow  = flow  ? flow.toFixed(3)              : '—';
+        const fmtFlowM = flowM ? flowM.toLocaleString()       : '—';
+        const fmtDose  = dose  ? dose.toString()              : '—';
+        const fmtUVT   = uvt   ? uvt.toString()               : '—';
+        const fmtCh    = ch    ? ch.toString()                : '—';
+        const fmtPrice = price ? '$' + price.toLocaleString() : '—';
+        const fmtPPL   = ppl   ? '$' + ppl.toLocaleString()   : '—';
+
+        return `<tr>
+            <td>${gf(r,'Date')||'—'}</td>
+            <td>${gf(r,'Country')||'—'}</td>
+            <td>${gf(r,'Region')||'—'}</td>
+            <td title="${escHtml(gf(r,'Project Name')||'')}">${trunc(gf(r,'Project Name')||'—',22)}</td>
+            <td>${gf(r,'Application')||'—'}</td>
+            <td>${gf(r,'Open Channel/Closed Vessel','Open Channel/\nClosed Vessel','Open Channel / Closed Vessel','Channel Type')||'—'}</td>
+            <td><strong>${gf(r,'Competitor')||'—'}</strong></td>
+            <td>${gf(r,'Model')||'—'}</td>
+            <td>${getQty(r)}</td>
+            <td>${fmtFlow}</td>
+            <td>${fmtFlowM}</td>
+            <td>${fmtUVT}</td>
+            <td>${fmtDose}</td>
+            <td>${getDoseType(r)||'—'}</td>
+            <td>${fmtCh}</td>
+            <td>${getLampsT(r)}</td>
+            <td>${getLampsD(r)}</td>
+            <td>${getPower(r)}</td>
+            <td>${fmtPrice}</td>
+            <td>${fmtPPL}</td>
+            <td title="${escHtml(comments)}">${shortComment}</td>
+            <td>
+                <span class="match-badge match-${r._quality}">${r._score}%</span>
+                <span class="score-bar"><span class="score-fill" style="width:${r._score}%"></span></span>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function trunc(s, n) { return s.length > n ? s.slice(0,n)+'…' : s; }
+function escHtml(s)  { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════════════
+function buildFilters(data) {
+    const fs = document.getElementById('filterSection');
+    const fo = document.getElementById('filterOptions');
+    const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
+
+    const competitors = uniq(data.map(r => gf(r,'Competitor')));
+    const countries   = uniq(data.map(r => gf(r,'Country')));
+    const models      = uniq(data.map(r => gf(r,'Model')));
+    const doseTypes   = uniq(data.map(r => getDoseType(r)));
+    const channels    = uniq(data.map(r => { const c = getChannels(r); return c ? String(c) : ''; }));
+
+    fo.innerHTML = `
+        <div class="filter-group-inline">
+            <h4>Competitor:</h4>
+            ${competitors.map(v=>chip('competitor',v)).join('')}
+        </div>
+        <div class="filter-group-inline" style="margin-left:8px;">
+            <h4>Country:</h4>
+            ${countries.map(v=>chip('country',v)).join('')}
+        </div>
+        <div class="filter-group-inline" style="margin-left:8px;">
+            <h4>Model:</h4>
+            ${models.map(v=>chip('model',v)).join('')}
+        </div>
+        <div class="filter-group-inline" style="margin-left:8px;">
+            <h4>Dose Type:</h4>
+            ${doseTypes.map(v=>chip('dosetype',v)).join('')}
+        </div>
+        <div class="filter-group-inline" style="margin-left:8px;">
+            <h4>Channels:</h4>
+            ${channels.map(v=>chip('channels',v)).join('')}
+        </div>
+    `;
+    fs.style.display = 'flex';
+}
+
+function chip(group, value) {
+    return `<label class="filter-chip" onclick="toggleChip(this)">
+        <input type="checkbox" data-group="${group}" value="${escHtml(value)}" onchange="applyFilters()">
+        ${escHtml(value)}
+    </label>`;
+}
+
+function toggleChip(label) {
+    label.classList.toggle('checked', label.querySelector('input').checked);
+}
+
+function applyFilters() {
+    const checked = {};
+    document.querySelectorAll('.filter-chip input:checked').forEach(cb => {
+        if (!checked[cb.dataset.group]) checked[cb.dataset.group] = [];
+        checked[cb.dataset.group].push(cb.value);
+    });
+    displayData = filteredData.filter(r => {
+        if (checked.competitor && !checked.competitor.includes(gf(r,'Competitor')))         return false;
+        if (checked.country    && !checked.country.includes(gf(r,'Country')))               return false;
+        if (checked.model      && !checked.model.includes(gf(r,'Model')))                   return false;
+        if (checked.dosetype   && !checked.dosetype.includes(getDoseType(r)))               return false;
+        if (checked.channels   && !checked.channels.includes(String(getChannels(r)||'')))   return false;
+        return true;
+    });
+    renderTable(displayData);
+}
+
+// ═══════════════════════════════════════════════
+//  SORT
+// ═══════════════════════════════════════════════
+const COL = [
+    r=>gf(r,'Date'), r=>gf(r,'Country'), r=>gf(r,'Region'), r=>gf(r,'Project Name'),
+    r=>gf(r,'Application'), r=>gf(r,'Open Channel/Closed Vessel','Open Channel/\nClosed Vessel'),
+    r=>gf(r,'Competitor'), r=>gf(r,'Model'),
+    r=>parseFloat(getQty(r))||0,
+    r=>getFlowMGD(r), r=>getFlowM3H(r), r=>getUVT(r), r=>getDose(r),
+    r=>getDoseType(r), r=>getChannels(r),
+    r=>parseFloat(getLampsT(r))||0, r=>parseFloat(getLampsD(r))||0,
+    r=>parseFloat(getPower(r))||0, r=>getPrice(r), r=>getPPL(r),
+    r=>gf(r,'Comments'), r=>r._score||0
+];
+
+function sortTable(ci) {
+    if (sortConfig.colIndex === ci) sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    else { sortConfig.colIndex = ci; sortConfig.direction = 'asc'; }
+    const dir = sortConfig.direction === 'asc' ? 1 : -1;
+    const get = COL[ci];
+    displayData.sort((a,b) => {
+        const av = get(a), bv = get(b);
+        if (typeof av === 'number' && typeof bv === 'number') return (av-bv)*dir;
+        return String(av).localeCompare(String(bv))*dir;
+    });
+    renderTable(displayData);
+}
+
+// ═══════════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════════
+function resetForm() {
+    ['flowRate','uvt','uvDose','numChannels'].forEach(id => document.getElementById(id).value = '');
+    ['doseType','application','channelType'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('flowTolerance').value = '1.0';
+    document.getElementById('uvtTolerance').value  = '5.0';
+    document.getElementById('doseTolerance').value = '5.0';
+    document.getElementById('rangeLabel').textContent = '';
+    currentFlowUnit = 'mgd';
+    document.getElementById('btnMGD').classList.add('active');
+    document.getElementById('btnM3H').classList.remove('active');
+    updateFlowTolUnit();
+    filteredData = []; displayData = [];
+    document.getElementById('resultsBody').innerHTML = `<tr><td colspan="22" class="no-results"><p>Enter parameters and click <strong>Search</strong></p></td></tr>`;
+    document.getElementById('resultCount').textContent = '0 matches';
+    document.getElementById('filterSection').style.display = 'none';
+    document.getElementById('messageContainer').innerHTML = '';
+    localStorage.removeItem(STORAGE_KEY);
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════
+function exportResults() {
+    if (!displayData.length) { showMessage('⚠️ No results to export.', 'error'); return; }
+    const headers = ['Date','Country','Region','Project Name','Application','Channel Type','Competitor','Model','Qty',
+                     'Flow (MGD)','Flow (m³/h)','UVT (%)','UV Dose (mJ/cm²)','Dose Type','Channels',
+                     'Lamps Total','Lamps Duty','Power (kW)','Price (US$)','$/Lamp','Comments','Match Score','Match Quality'];
+    const rows = displayData.map(r => [
+        gf(r,'Date'), gf(r,'Country'), gf(r,'Region'), gf(r,'Project Name'), gf(r,'Application'),
+        gf(r,'Open Channel/Closed Vessel','Open Channel/\nClosed Vessel'),
+        gf(r,'Competitor'), gf(r,'Model'), getQty(r),
+        getFlowMGD(r), getFlowM3H(r), getUVT(r), getDose(r), getDoseType(r),
+        getChannels(r), getLampsT(r), getLampsD(r), getPower(r), getPrice(r), getPPL(r),
+        gf(r,'Comments'), r._score+'%', r._quality
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`));
+    const csv  = [headers.join(','), ...rows.map(r=>r.join(','))].join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `uv-matches-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════
+//  MESSAGES
+// ═══════════════════════════════════════════════
+function showMessage(msg, type) {
+    const c = document.getElementById('messageContainer');
+    if (!msg) { c.innerHTML = ''; return; }
+    if (type === 'loading') {
+        c.innerHTML = `<div class="loading"><div class="spinner"></div><p>${msg}</p></div>`;
+    } else {
+        const cls = type === 'error' ? 'error-message' : 'success-message';
+        c.innerHTML = `<div class="${cls}">${msg}</div>`;
+        if (type === 'success') setTimeout(() => c.innerHTML = '', 6000);
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    restoreSettings();
+    attachAutoSave();
+    updateFlowTolUnit();
+});
+</script>
+
+</body>
+</html>
