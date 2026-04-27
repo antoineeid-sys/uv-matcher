@@ -499,13 +499,13 @@
                 <div class="help-section">
                     <h3>📁 Option B — Local Excel or CSV File</h3>
                     <ol>
-                        <li>Export or save your database as <strong>.xlsx</strong> or <strong>.csv</strong></li>
+                        <li>Export or save your database as <strong>.xlsx</strong>, <strong>.xls</strong>, or <strong>.csv</strong></li>
                         <li>Make sure <strong>Row 1 contains the column headers</strong></li>
                         <li>Click <strong>"Choose File"</strong> under the Local File section</li>
                         <li>Select your file and click <strong>Search</strong></li>
                     </ol>
-                    <div class="help-tip">✅ <strong>Best option for offline use</strong> — works directly from your desktop.</div>
-                    <div class="help-note">⚠️ For <strong>.xlsx</strong> files, SheetJS is loaded from CDN — internet required on first use.</div>
+                    <div class="help-tip">✅ <strong>Supported formats:</strong> .csv, .xls, .xlsx — works offline from your desktop.</div>
+                    <div class="help-note">⚠️ For <strong>.xls/.xlsx</strong> files, SheetJS is loaded from CDN — internet required on first use.</div>
                 </div>
                 <div class="help-section">
                     <h3>🌐 Option C — Host the App</h3>
@@ -969,28 +969,34 @@ async function loadLocalFile(file) {
     return new Promise(resolve => {
         showMessage('⏳ Reading local file…', 'loading');
         const reader = new FileReader();
-        if (file.name.match(/\.csv$/i)) {
-            reader.onload = e => {
-                allData = parseCSV(e.target.result);
-                if (!allData.length) { showMessage('❌ No data found in CSV.', 'error'); resolve(false); return; }
-                showMessage(`✅ Loaded <strong>${allData.length}</strong> records from CSV.`, 'success');
+
+        // Route ALL file types through SheetJS — it handles CSV, XLS, XLSX,
+        // BOM, \r\n, semicolon delimiters, encoding issues, etc.
+        reader.onload = e => {
+            try {
+                const wb = XLSX.read(e.target.result, {
+                    type: 'array',
+                    raw: false,
+                    codepage: 65001   // force UTF-8
+                });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                allData = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+                if (!allData.length) {
+                    showMessage('❌ No data found in file. Make sure Row 1 has column headers.', 'error');
+                    resolve(false);
+                    return;
+                }
+                const ext = file.name.split('.').pop().toUpperCase();
+                showMessage(`✅ Loaded <strong>${allData.length}</strong> records from ${ext} file.`, 'success');
                 resolve(true);
-            };
-            reader.readAsText(file);
-        } else {
-            reader.onload = e => {
-                try {
-                    const wb = XLSX.read(e.target.result, { type: 'array' });
-                    const ws = wb.Sheets[wb.SheetNames[0]];
-                    allData = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
-                    if (!allData.length) { showMessage('❌ No data found in Excel file.', 'error'); resolve(false); return; }
-                    showMessage(`✅ Loaded <strong>${allData.length}</strong> records from Excel.`, 'success');
-                    resolve(true);
-                } catch(err) { showMessage(`❌ Excel parse error: ${err.message}`, 'error'); resolve(false); }
-            };
-            reader.readAsArrayBuffer(file);
-        }
+            } catch(err) {
+                showMessage(`❌ File parse error: ${err.message}`, 'error');
+                resolve(false);
+            }
+        };
+
         reader.onerror = () => { showMessage('❌ File read error.', 'error'); resolve(false); };
+        reader.readAsArrayBuffer(file);  // SheetJS reads everything as ArrayBuffer
     });
 }
 
@@ -998,6 +1004,8 @@ async function loadLocalFile(file) {
 //  CSV PARSER
 // ═══════════════════════════════════════════════
 function parseCSV(text) {
+    // Normalize: remove BOM, normalize all line endings to \n
+    text = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const lines = text.trim().split('\n');
     if (lines.length < 2) return [];
     const headers = parseLine(lines[0]);
@@ -1013,6 +1021,7 @@ function parseCSV(text) {
 }
 
 function parseLine(line) {
+    line = line.replace(/\r$/, '');  // strip stray \r from Windows line endings
     const res = []; let cur = ''; let inQ = false;
     for (let i = 0; i < line.length; i++) {
         const c = line[i];
